@@ -1,0 +1,27 @@
+node_modules
+.next
+out
+build
+dist
+
+# Database (mounted as a volume at runtime)
+data/
+
+.env
+.env.*
+
+.git
+.gitignore
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+next-env.d.ts
+
+README.md
+Dockerfile
+.dockerignore
