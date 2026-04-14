@@ -53,6 +53,7 @@ export interface HabitWithStats extends Habit {
   score: number; // 0-1
   completionRate: number; // 0-1 for last 30 days
   totalCount: number;
+  lastFilledDate: string | null; // ISO date of most recent YES entry
 }
 
 // 20-color palette matching uhabits

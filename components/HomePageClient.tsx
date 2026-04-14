@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useMemo, useTransition, useOptimistic } from "react";
+import { useState, useMemo, useTransition, useOptimistic, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Archive, Search, CheckCircle2 } from "lucide-react";
+import { Plus, Archive, Search, CheckCircle2, ArrowUpDown } from "lucide-react";
 import { toggleEntry } from "@/lib/actions/entries";
 import { HabitCard } from "@/components/HabitCard";
 import { PageHeader } from "@/components/PageHeader";
 import type { HabitWithStats } from "@/lib/models";
 import { todayISO } from "@/lib/models";
+
+type SortKey = "name-asc" | "name-desc" | "last-filled-desc" | "last-filled-asc";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  "name-asc": "Name A→Z",
+  "name-desc": "Name Z→A",
+  "last-filled-desc": "Recently filled",
+  "last-filled-asc": "Least recently filled",
+};
 
 interface Props {
   habits: HabitWithStats[];
@@ -17,6 +26,40 @@ interface Props {
 export default function HomePageClient({ habits }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("last-filled-desc");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setShowSortMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSortMenu]);
+
+  // Refresh data at midnight so today's entries reset
+  useEffect(() => {
+    const scheduleMidnightRefresh = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const msUntilMidnight = midnight.getTime() - now.getTime();
+
+      const id = setTimeout(() => {
+        router.refresh();
+        scheduleMidnightRefresh(); // reschedule for next midnight
+      }, msUntilMidnight);
+
+      return id;
+    };
+
+    const id = scheduleMidnightRefresh();
+    return () => clearTimeout(id);
+  }, [router]);
   const [showArchived, setShowArchived] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -39,10 +82,54 @@ export default function HomePageClient({ habits }: Props) {
   const activeHabits = optimisticHabits.filter((h) => !h.isArchived);
   const archivedCount = optimisticHabits.filter((h) => h.isArchived).length;
 
-  const filtered = useMemo(
-    () => activeHabits.filter((h) => h.name.toLowerCase().includes(search.toLowerCase())),
-    [activeHabits, search]
-  );
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    // Filter + rank by match tier (1 = name, 2 = description, 3 = question)
+    const ranked = activeHabits
+      .map((h) => {
+        if (!q) return { habit: h, tier: 0 };
+        if (h.name.toLowerCase().includes(q)) return { habit: h, tier: 1 };
+        if (h.description.toLowerCase().includes(q)) return { habit: h, tier: 2 };
+        if (h.question.toLowerCase().includes(q)) return { habit: h, tier: 3 };
+        return null;
+      })
+      .filter((x): x is { habit: HabitWithStats; tier: number } => x !== null);
+
+    // Sort: when searching, tier comes first; otherwise apply chosen sort
+    ranked.sort((a, b) => {
+      if (q && a.tier !== b.tier) return a.tier - b.tier;
+
+      const ha = a.habit, hb = b.habit;
+
+      switch (sortKey) {
+        case "name-asc":  return ha.name.localeCompare(hb.name);
+        case "name-desc": return hb.name.localeCompare(ha.name);
+
+        case "last-filled-desc": {
+          // Newest date first; null → end; tie → name A→Z
+          const da = ha.lastFilledDate, db = hb.lastFilledDate;
+          if (da === db) return ha.name.localeCompare(hb.name);
+          if (!da) return 1;
+          if (!db) return -1;
+          return da > db ? -1 : 1;
+        }
+
+        case "last-filled-asc": {
+          // Oldest date first; null → end; tie → name Z→A
+          const da = ha.lastFilledDate, db = hb.lastFilledDate;
+          if (da === db) return hb.name.localeCompare(ha.name);
+          if (!da) return 1;
+          if (!db) return -1;
+          return da < db ? -1 : 1;
+        }
+
+        default: return 0;
+      }
+    });
+
+    return ranked.map((x) => x.habit);
+  }, [activeHabits, search, sortKey]);
 
   const todayDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -104,17 +191,45 @@ export default function HomePageClient({ habits }: Props) {
           </div>
         )}
 
-        {/* Search */}
-        {totalHabits > 3 && (
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-            <input
-              type="text"
-              placeholder="Search habits..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-9"
-            />
+        {/* Search + Sort */}
+        {totalHabits > 0 && (
+          <div className="flex gap-2 items-center">
+            {totalHabits > 3 && (
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="Search name, description, or question…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input pl-9"
+                />
+              </div>
+            )}
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={() => setShowSortMenu((v) => !v)}
+                className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors whitespace-nowrap"
+              >
+                <ArrowUpDown size={13} />
+                {SORT_LABELS[sortKey]}
+              </button>
+              {showSortMenu && (
+                <div className="absolute right-0 top-full mt-1 z-20 min-w-[180px] rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg overflow-hidden">
+                  {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => { setSortKey(key); setShowSortMenu(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-[var(--border)] ${
+                        sortKey === key ? "text-[var(--text-primary)] font-semibold" : "text-[var(--text-secondary)]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

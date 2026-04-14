@@ -47,6 +47,10 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
   const completed30 = past30.filter((d) =>
     entries.some((e) => e.date === d && e.value === "YES")
   ).length;
+  const yesEntries = entries.filter((e) => e.value === "YES");
+  const lastFilledDate = yesEntries.length > 0
+    ? yesEntries.reduce((latest, e) => e.date > latest ? e.date : latest, yesEntries[0].date)
+    : null;
   return {
     ...habit,
     todayEntry,
@@ -54,7 +58,8 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
     longestStreak: longest,
     score,
     completionRate: completed30 / 30,
-    totalCount: entries.filter((e) => e.value === "YES").length,
+    totalCount: yesEntries.length,
+    lastFilledDate,
   };
 }
 
