@@ -4,7 +4,9 @@ import path from "path";
 import * as schema from "./schema";
 import type { Entry } from "@/lib/models";
 
-const DB_PATH = path.join(process.cwd(), "data", "habitus.db");
+const DB_PATH = process.env.HABITUS_DATA_DIR
+  ? path.join(process.env.HABITUS_DATA_DIR, "habitus.db")
+  : path.join(process.cwd(), "data", "habitus.db");
 
 let _db: BetterSQLite3Database<typeof schema> | null = null;
 
