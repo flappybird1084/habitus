@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { toggleEntry } from "@/lib/actions/entries";
 import { deleteHabit, archiveHabit } from "@/lib/actions/habits";
-import { getColor, formatFrequency, getPastDays } from "@/lib/models";
+import { getColor, formatFrequency, getPastDays, todayISO } from "@/lib/models";
 import type { HabitWithStats, Entry } from "@/lib/models";
 import { PageHeader } from "@/components/PageHeader";
 import { CheckmarkButton } from "@/components/CheckmarkButton";
@@ -36,16 +36,31 @@ export function HabitDetailClient({ habit, entries, firstWeekday }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const [optimisticEntries, applyOptimisticToggle] = useOptimistic(
+    entries,
+    (state, date: string) => {
+      const existing = state.find((e) => e.date === date);
+      const newValue = existing?.value === "YES" ? "NO" as const : "YES" as const;
+      if (existing) {
+        return state.map((e) => e.date === date ? { ...e, value: newValue } : e);
+      }
+      return [...state, { date, value: newValue }];
+    }
+  );
+
   const hexColor = getColor(habit.color, dark);
-  const isCompleted = habit.todayEntry?.value === "YES";
+  const today = todayISO();
+  const todayEntry = optimisticEntries.find((e) => e.date === today) ?? habit.todayEntry;
+  const isCompleted = todayEntry?.value === "YES";
 
   const last30 = getPastDays(30);
   const completedDays = last30.filter((d) =>
-    entries.some((e) => e.date === d && e.value === "YES")
+    optimisticEntries.some((e) => e.date === d && e.value === "YES")
   ).length;
 
-  const handleToggle = (date?: string) => {
+  const handleToggle = (date = today) => {
     startTransition(async () => {
+      applyOptimisticToggle(date);
       await toggleEntry(habit.id, date);
       router.refresh();
     });
@@ -172,7 +187,7 @@ export function HabitDetailClient({ habit, entries, firstWeekday }: Props) {
             <h3 className="section-title flex items-center gap-2"><Calendar size={12} />History</h3>
           </div>
           <HistoryGrid
-            entries={entries}
+            entries={optimisticEntries}
             color={habit.color}
             dark={dark}
             firstWeekday={firstWeekday}
@@ -202,13 +217,13 @@ export function HabitDetailClient({ habit, entries, firstWeekday }: Props) {
               ))}
             </div>
           </div>
-          <HabitBarChart entries={entries} color={habit.color} dark={dark} view={chartView} />
+          <HabitBarChart entries={optimisticEntries} color={habit.color} dark={dark} view={chartView} />
         </div>
 
         {/* Frequency heatmap */}
         <div className="card p-4">
           <h3 className="section-title mb-3 flex items-center gap-2"><TrendingUp size={12} />Best Days</h3>
-          <FrequencyHeatmap entries={entries} color={habit.color} dark={dark} firstWeekday={firstWeekday} />
+          <FrequencyHeatmap entries={optimisticEntries} color={habit.color} dark={dark} firstWeekday={firstWeekday} />
         </div>
 
         {/* Score */}

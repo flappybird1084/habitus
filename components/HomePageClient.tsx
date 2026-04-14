@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Archive, Search, CheckCircle2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { toggleEntry } from "@/lib/actions/entries";
 import { HabitCard } from "@/components/HabitCard";
 import { PageHeader } from "@/components/PageHeader";
 import type { HabitWithStats } from "@/lib/models";
+import { todayISO } from "@/lib/models";
 
 interface Props {
   habits: HabitWithStats[];
@@ -19,8 +20,24 @@ export default function HomePageClient({ habits }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const [, startTransition] = useTransition();
 
-  const activeHabits = habits.filter((h) => !h.isArchived);
-  const archivedCount = habits.filter((h) => h.isArchived).length;
+  const [optimisticHabits, applyOptimisticToggle] = useOptimistic(
+    habits,
+    (state, habitId: string) => {
+      const today = todayISO();
+      return state.map((h) =>
+        h.id !== habitId ? h : {
+          ...h,
+          todayEntry: {
+            date: today,
+            value: h.todayEntry?.value === "YES" ? "NO" as const : "YES" as const,
+          },
+        }
+      );
+    }
+  );
+
+  const activeHabits = optimisticHabits.filter((h) => !h.isArchived);
+  const archivedCount = optimisticHabits.filter((h) => h.isArchived).length;
 
   const filtered = useMemo(
     () => activeHabits.filter((h) => h.name.toLowerCase().includes(search.toLowerCase())),
@@ -39,6 +56,7 @@ export default function HomePageClient({ habits }: Props) {
 
   const handleToggle = (habitId: string) => {
     startTransition(async () => {
+      applyOptimisticToggle(habitId);
       await toggleEntry(habitId);
       router.refresh();
     });
