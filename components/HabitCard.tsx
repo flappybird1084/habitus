@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame } from "lucide-react";
 import { CheckmarkButton } from "./CheckmarkButton";
 import { ScoreRing } from "./ScoreRing";
 import { getColor, formatFrequency } from "@/lib/models";
 import type { HabitWithStats } from "@/lib/models";
-import { useHabitStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface HabitCardProps {
   habit: HabitWithStats;
+  onToggle: () => void;
 }
 
-export function HabitCard({ habit }: HabitCardProps) {
+export function HabitCard({ habit, onToggle }: HabitCardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
-  const toggleEntry = useHabitStore((s) => s.toggleEntry);
   const hexColor = getColor(habit.color, dark);
   const isCompleted = habit.todayEntry?.value === "YES";
   const completionPercent = Math.round(habit.completionRate * 100);
@@ -35,7 +34,7 @@ export function HabitCard({ habit }: HabitCardProps) {
         completed={isCompleted}
         color={habit.color}
         dark={dark}
-        onClick={() => toggleEntry(habit.id)}
+        onClick={onToggle}
       />
 
       {/* Info */}

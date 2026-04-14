@@ -1,38 +1,30 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Archive, Search, CheckCircle2 } from "lucide-react";
-import { useHabitStore } from "@/lib/store";
+import { toggleEntry } from "@/lib/actions/entries";
 import { HabitCard } from "@/components/HabitCard";
 import { PageHeader } from "@/components/PageHeader";
+import type { HabitWithStats } from "@/lib/models";
 
-export default function HomePageClient() {
+interface Props {
+  habits: HabitWithStats[];
+}
+
+export default function HomePageClient({ habits }: Props) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [, startTransition] = useTransition();
 
-  const getAllHabitsWithStats = useHabitStore((s) => s.getAllHabitsWithStats);
-  const habits = useHabitStore((s) => s.habits);
-  // Subscribing to entries is required: toggleEntry only mutates entries,
-  // not habits, so without this the page never re-renders after a toggle.
-  const entries = useHabitStore((s) => s.entries);
-
-  const allWithStats = useMemo(
-    () => getAllHabitsWithStats(),
-    [getAllHabitsWithStats, habits, entries]
-  );
-
-  const archivedCount = useMemo(
-    () => habits.filter((h) => h.isArchived).length,
-    [habits]
-  );
+  const activeHabits = habits.filter((h) => !h.isArchived);
+  const archivedCount = habits.filter((h) => h.isArchived).length;
 
   const filtered = useMemo(
-    () =>
-      allWithStats.filter((h) =>
-        h.name.toLowerCase().includes(search.toLowerCase())
-      ),
-    [allWithStats, search]
+    () => activeHabits.filter((h) => h.name.toLowerCase().includes(search.toLowerCase())),
+    [activeHabits, search]
   );
 
   const todayDate = new Date().toLocaleDateString("en-US", {
@@ -41,11 +33,16 @@ export default function HomePageClient() {
     day: "numeric",
   });
 
-  const completedToday = allWithStats.filter(
-    (h) => h.todayEntry?.value === "YES"
-  ).length;
-  const totalHabits = allWithStats.length;
+  const completedToday = activeHabits.filter((h) => h.todayEntry?.value === "YES").length;
+  const totalHabits = activeHabits.length;
   const allDoneToday = completedToday === totalHabits && totalHabits > 0;
+
+  const handleToggle = (habitId: string) => {
+    startTransition(async () => {
+      await toggleEntry(habitId);
+      router.refresh();
+    });
+  };
 
   return (
     <div className="min-h-full">
@@ -73,20 +70,14 @@ export default function HomePageClient() {
                     ? "All done for today! 🎉"
                     : `${completedToday} of ${totalHabits} completed`}
                 </p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Keep the momentum going
-                </p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">Keep the momentum going</p>
               </div>
-              {allDoneToday && (
-                <CheckCircle2 className="text-emerald-500" size={28} />
-              )}
+              {allDoneToday && <CheckCircle2 className="text-emerald-500" size={28} />}
             </div>
             <div className="h-2 rounded-full bg-[var(--border)] overflow-hidden">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-                style={{
-                  width: `${(completedToday / totalHabits) * 100}%`,
-                }}
+                style={{ width: `${(completedToday / totalHabits) * 100}%` }}
               />
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-2 text-right font-medium">
@@ -98,10 +89,7 @@ export default function HomePageClient() {
         {/* Search */}
         {totalHabits > 3 && (
           <div className="relative">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-            />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
               placeholder="Search habits..."
@@ -116,16 +104,14 @@ export default function HomePageClient() {
         {filtered.length > 0 ? (
           <div className="space-y-2 animate-fade-in">
             {filtered.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} />
+              <HabitCard key={habit.id} habit={habit} onToggle={() => handleToggle(habit.id)} />
             ))}
           </div>
         ) : totalHabits === 0 ? (
           <EmptyState />
         ) : (
           <div className="card p-8 text-center">
-            <p className="text-[var(--text-muted)] text-sm">
-              No habits match your search.
-            </p>
+            <p className="text-[var(--text-muted)] text-sm">No habits match your search.</p>
           </div>
         )}
 
@@ -152,12 +138,9 @@ function EmptyState() {
         <CheckCircle2 size={32} className="text-emerald-500" />
       </div>
       <div className="text-center">
-        <h3 className="font-bold text-[var(--text-primary)] text-lg">
-          Start tracking habits
-        </h3>
+        <h3 className="font-bold text-[var(--text-primary)] text-lg">Start tracking habits</h3>
         <p className="text-[var(--text-muted)] text-sm mt-1 max-w-xs">
-          Build positive routines and break bad ones. Add your first habit to
-          get started.
+          Build positive routines and break bad ones. Add your first habit to get started.
         </p>
       </div>
       <Link

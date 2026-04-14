@@ -1,13 +1,9 @@
-import dynamic from "next/dynamic";
+export const dynamic = "force-dynamic";
 
-// ssr: false prevents the server from rendering state that depends on
-// localStorage (via zustand persist), which would mismatch the client's
-// hydrated state and throw a React hydration error.
-const HomePageClient = dynamic(
-  () => import("@/components/HomePageClient"),
-  { ssr: false }
-);
+import { getAllHabitsWithStats } from "@/lib/actions/habits";
+import HomePageClient from "@/components/HomePageClient";
 
-export default function HomePage() {
-  return <HomePageClient />;
+export default async function HomePage() {
+  const habits = await getAllHabitsWithStats();
+  return <HomePageClient habits={habits} />;
 }

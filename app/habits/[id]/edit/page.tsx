@@ -1,16 +1,17 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { useParams } from "next/navigation";
-import { useHabitStore } from "@/lib/store";
+import { getHabit } from "@/lib/actions/habits";
 import { PageHeader } from "@/components/PageHeader";
 import { HabitForm } from "@/components/HabitForm";
 import Link from "next/link";
 
-export default function EditHabitPage() {
-  const params = useParams();
-  const id = params.id as string;
-  const habits = useHabitStore((s) => s.habits);
-  const habit = habits.find((h) => h.id === id);
+interface Props {
+  params: { id: string };
+}
+
+export default async function EditHabitPage({ params }: Props) {
+  const { id } = params;
+  const habit = await getHabit(id);
 
   if (!habit) {
     return (

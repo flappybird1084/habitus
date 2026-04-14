@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff } from "lucide-react";
 import { ColorPicker } from "./ColorPicker";
-import { useHabitStore } from "@/lib/store";
+import { addHabit, updateHabit } from "@/lib/actions/habits";
 import type { Habit, Frequency } from "@/lib/models";
 import { FREQUENCY_PRESETS, formatFrequency } from "@/lib/models";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ const FREQ_OPTIONS = [
 ];
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-const DEFAULT_CUSTOM_DAYS: boolean[] = [false, true, false, true, false, true, false]; // Mon/Wed/Fri
+const DEFAULT_CUSTOM_DAYS: boolean[] = [false, true, false, true, false, true, false];
 
 function freqMatch(a: Frequency, b: Frequency) {
   return a.numerator === b.numerator && a.denominator === b.denominator;
@@ -30,8 +30,7 @@ function freqMatch(a: Frequency, b: Frequency) {
 
 export function HabitForm({ existing, mode }: HabitFormProps) {
   const router = useRouter();
-  const addHabit = useHabitStore((s) => s.addHabit);
-  const updateHabit = useHabitStore((s) => s.updateHabit);
+  const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
@@ -49,12 +48,10 @@ export function HabitForm({ existing, mode }: HabitFormProps) {
   const [hasReminder, setHasReminder] = useState(!!existing?.reminder);
   const [reminderHour, setReminderHour] = useState(existing?.reminder?.hour ?? 8);
   const [reminderMinute, setReminderMinute] = useState(existing?.reminder?.minute ?? 0);
-
   const [useCustomDays, setUseCustomDays] = useState(!!existing?.targetDays);
   const [customDays, setCustomDays] = useState<boolean[]>(
     existing?.targetDays ?? [...DEFAULT_CUSTOM_DAYS]
   );
-
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -90,13 +87,14 @@ export function HabitForm({ existing, mode }: HabitFormProps) {
         : undefined,
     };
 
-    if (mode === "create") {
-      addHabit(habitData);
-    } else if (existing) {
-      updateHabit(existing.id, habitData);
-    }
-
-    router.push("/");
+    startTransition(async () => {
+      if (mode === "create") {
+        await addHabit(habitData);
+      } else if (existing) {
+        await updateHabit(existing.id, habitData);
+      }
+      router.push("/");
+    });
   };
 
   return (
@@ -112,9 +110,7 @@ export function HabitForm({ existing, mode }: HabitFormProps) {
           className={cn("input", errors.name && "border-red-400 focus:ring-red-400")}
           autoFocus
         />
-        {errors.name && (
-          <p className="text-xs text-red-400 mt-1">{errors.name}</p>
-        )}
+        {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
       </div>
 
       {/* Description */}
@@ -321,14 +317,15 @@ export function HabitForm({ existing, mode }: HabitFormProps) {
 
       {/* Actions */}
       <div className="flex gap-3 pt-2 pb-4">
-        <button onClick={() => router.back()} className="btn-secondary flex-1">
+        <button onClick={() => router.back()} className="btn-secondary flex-1" disabled={isPending}>
           Cancel
         </button>
         <button
           onClick={handleSubmit}
-          className="flex-1 btn-primary bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
+          disabled={isPending}
+          className="flex-1 btn-primary bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 disabled:opacity-60"
         >
-          {mode === "create" ? "Create Habit" : "Save Changes"}
+          {isPending ? "Saving…" : mode === "create" ? "Create Habit" : "Save Changes"}
         </button>
       </div>
     </div>

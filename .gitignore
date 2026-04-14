@@ -28,3 +28,8 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite database
+data/habitus.db
+data/habitus.db-shm
+data/habitus.db-wal
