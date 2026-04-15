@@ -122,7 +122,8 @@ function seedSampleData(sqlite: Database.Database) {
       for (let i = 1; i <= 60; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const date = d.toISOString().split("T")[0];
+        const yy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, "0"), dd = String(d.getDate()).padStart(2, "0");
+        const date = `${yy}-${mm}-${dd}`;
         const prob = SAMPLE_PROBS[h.id] ?? 0.5;
         const value: Entry["value"] = Math.random() > prob ? "YES" : "NO";
         insertEntry.run(h.id, date, value);

@@ -41,25 +41,24 @@ export default function HomePageClient({ habits }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, [showSortMenu]);
 
-  // Refresh data at midnight so today's entries reset
+  // Reactive current date — ticks every minute
+  const [currentDateISO, setCurrentDateISO] = useState(todayISO);
+  const [displayDate, setDisplayDate] = useState(() =>
+    new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+  );
+
   useEffect(() => {
-    const scheduleMidnightRefresh = () => {
-      const now = new Date();
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0);
-      const msUntilMidnight = midnight.getTime() - now.getTime();
-
-      const id = setTimeout(() => {
+    const tick = () => {
+      const newISO = todayISO();
+      setDisplayDate(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }));
+      if (newISO !== currentDateISO) {
+        setCurrentDateISO(newISO);
         router.refresh();
-        scheduleMidnightRefresh(); // reschedule for next midnight
-      }, msUntilMidnight);
-
-      return id;
+      }
     };
-
-    const id = scheduleMidnightRefresh();
-    return () => clearTimeout(id);
-  }, [router]);
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [currentDateISO, router]);
   const [showArchived, setShowArchived] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -79,7 +78,14 @@ export default function HomePageClient({ habits }: Props) {
     }
   );
 
-  const activeHabits = optimisticHabits.filter((h) => !h.isArchived);
+  // Immediately zero out todayEntry for any entry that belongs to a past date
+  // (happens when the app is left open past midnight, before router.refresh() resolves)
+  const activeHabits = optimisticHabits
+    .filter((h) => !h.isArchived)
+    .map((h) => ({
+      ...h,
+      todayEntry: h.todayEntry?.date === currentDateISO ? h.todayEntry : null,
+    }));
   const archivedCount = optimisticHabits.filter((h) => h.isArchived).length;
 
   const filtered = useMemo(() => {
@@ -131,12 +137,6 @@ export default function HomePageClient({ habits }: Props) {
     return ranked.map((x) => x.habit);
   }, [activeHabits, search, sortKey]);
 
-  const todayDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
   const completedToday = activeHabits.filter((h) => h.todayEntry?.value === "YES").length;
   const totalHabits = activeHabits.length;
   const allDoneToday = completedToday === totalHabits && totalHabits > 0;
@@ -153,7 +153,7 @@ export default function HomePageClient({ habits }: Props) {
     <div className="min-h-full">
       <PageHeader
         title="My Habits"
-        subtitle={todayDate}
+        subtitle={displayDate}
         actions={
           <Link
             href="/habits/new"

@@ -129,12 +129,19 @@ export function formatFrequency(freq: Frequency, targetDays?: boolean[]): string
   return `${freq.numerator}× per ${freq.denominator} days`;
 }
 
+function localISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
+  return localISO(new Date());
 }
 
 export function dateToISO(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return localISO(date);
 }
 
 export function getPast30Days(): string[] {
