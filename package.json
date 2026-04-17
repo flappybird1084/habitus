@@ -4,12 +4,12 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm rebuild better-sqlite3 --quiet && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "electron:dev": "NODE_ENV=development electron .",
-    "electron:build": "next build && electron-builder",
+    "electron:dev": "npm run electron:rebuild && NODE_ENV=development electron .",
+    "electron:build": "npm run electron:rebuild && next build && electron-builder",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
