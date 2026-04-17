@@ -15,11 +15,12 @@ A personal habit tracking web app inspired by [Loop Habit Tracker (uhabits)](htt
 
 ## Screenshots
 
-![Habit list](assets/home.png)
-*Home — daily check-ins with progress, streaks, and scores*
-
-![Statistics](assets/statistics.png)
-*Statistics — global scores, streaks, and completion rate*
+<table>
+  <tr>
+    <td align="center"><img src="assets/home.png" width="420" alt="Home" /><br/><sub>Home — daily check-ins with progress, streaks, and scores</sub></td>
+    <td align="center"><img src="assets/statistics.png" width="420" alt="Statistics" /><br/><sub>Statistics — global scores, streaks, and completion rate</sub></td>
+  </tr>
+</table>
 
 ## Stack
 
