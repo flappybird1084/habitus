@@ -13,6 +13,14 @@ A personal habit tracking web app inspired by [Loop Habit Tracker (uhabits)](htt
 - **Responsive** — sidebar navigation on desktop, bottom nav on mobile
 - **No account needed** — all data stored locally in a SQLite database
 
+## Screenshots
+
+![Habit list](assets/Screenshot%202026-04-16%20at%206.44.14%20PM.png)
+*Home — daily check-ins with progress, streaks, and scores*
+
+![Statistics](assets/Screenshot%202026-04-16%20at%206.44.21%20PM.png)
+*Statistics — global scores, streaks, and completion rate*
+
 ## Stack
 
 | Layer | Technology |
