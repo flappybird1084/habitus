@@ -68,23 +68,27 @@ async function startNextServer() {
   }
 
   const appRoot = getAppRoot();
-  const dataDir = getDataDir();
+  // In dev use the project's data/ dir so electron and `npm run dev` share the same DB.
+  // In production use the OS user-data folder so the DB survives app updates.
+  const dataDir = isDev ? path.join(appRoot, "data") : getDataDir();
 
   const env = {
     ...process.env,
     NODE_ENV: isDev ? "development" : "production",
     PORT: String(PORT),
-    // Tell the app where to store the DB
     HABITUS_DATA_DIR: dataDir,
   };
 
   const script = isDev ? "dev" : "start";
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 
+  // detached: true puts next/npm in its own process group so we can kill the
+  // whole group (npm + next dev child) on quit, not just the npm wrapper.
   nextProcess = spawn(npmCmd, ["run", script], {
     cwd: appRoot,
     env,
     stdio: ["ignore", "pipe", "pipe"],
+    detached: true,
   });
 
   nextProcess.stdout.on("data", (d) => process.stdout.write(`[next] ${d}`));
@@ -157,7 +161,12 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   if (nextProcess) {
-    nextProcess.kill();
+    try {
+      // Kill the entire process group (npm + its next dev child) to prevent orphans.
+      process.kill(-nextProcess.pid, "SIGTERM");
+    } catch (_) {
+      nextProcess.kill();
+    }
     nextProcess = null;
   }
 });
