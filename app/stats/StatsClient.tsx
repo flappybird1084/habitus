@@ -14,7 +14,7 @@ import type { HabitWithStats } from "@/lib/models";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { ScoreRing } from "@/components/ScoreRing";
-import { Flame, TrendingUp, Target, CheckCircle2, Hourglass } from "lucide-react";
+import { Flame, TrendingUp, Target, CheckCircle2, Hourglass, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatPercent } from "@/lib/utils";
 
@@ -164,6 +164,14 @@ export function StatsClient({ habits }: Props) {
                       >
                         <Hourglass size={10} strokeWidth={2.5} />
                         {habit.daysUntilStreakLoss}d left
+                      </span>
+                    )}
+                    {habit.streakAtRiskToday && (
+                      <span
+                        className="ml-1 flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-500"
+                        title="will lose streak if not done today"
+                      >
+                        <AlertTriangle size={10} strokeWidth={2.5} />
                       </span>
                     )}
                   </div>

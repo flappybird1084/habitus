@@ -14,6 +14,7 @@ import {
   computeScore,
   computeStreaks,
   daysUntilStreakLoss,
+  streakAtRiskToday,
   getPast30Days,
 } from "@/lib/models";
 
@@ -45,6 +46,7 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
   const score = computeScore(entries, habit.frequency, habit.targetDays);
   const { current, longest } = computeStreaks(entries, habit.frequency, habit.targetDays);
   const streakDaysLeft = daysUntilStreakLoss(entries, habit.frequency, habit.targetDays);
+  const atRisk = streakAtRiskToday(entries, habit.frequency, habit.targetDays);
   const past30 = getPast30Days();
   const completed30 = past30.filter((d) =>
     entries.some((e) => e.date === d && e.value === "YES")
@@ -63,6 +65,7 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
     totalCount: yesEntries.length,
     lastFilledDate,
     daysUntilStreakLoss: streakDaysLeft,
+    streakAtRiskToday: atRisk,
   };
 }
 

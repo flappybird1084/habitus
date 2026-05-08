@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
-  Edit3, Trash2, Archive, Flame, Award, TrendingUp, Calendar, BarChart2, Activity, Hourglass,
+  Edit3, Trash2, Archive, Flame, Award, TrendingUp, Calendar, BarChart2, Activity, Hourglass, AlertTriangle,
 } from "lucide-react";
 import { toggleEntry } from "@/lib/actions/entries";
 import { deleteHabit, archiveHabit } from "@/lib/actions/habits";
@@ -135,6 +135,15 @@ export function HabitDetailClient({ habit, entries, firstWeekday }: Props) {
                 {habit.type === "NUMERICAL" && (
                   <span className="text-xs text-[var(--text-muted)]">
                     Goal: {habit.targetValue} {habit.unit}
+                  </span>
+                )}
+                {habit.streakAtRiskToday && (
+                  <span
+                    className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500"
+                    title="will lose streak if not done today"
+                  >
+                    <AlertTriangle size={12} strokeWidth={2.5} />
+                    At risk
                   </span>
                 )}
               </div>

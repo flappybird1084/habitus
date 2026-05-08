@@ -55,6 +55,7 @@ export interface HabitWithStats extends Habit {
   totalCount: number;
   lastFilledDate: string | null; // ISO date of most recent YES entry
   daysUntilStreakLoss: number | null;
+  streakAtRiskToday: boolean;
 }
 
 // 20-color palette matching uhabits
@@ -320,4 +321,37 @@ export function daysUntilStreakLoss(
     if (!isSatisfiedAt(offset)) return offset;
   }
   return frequency.denominator + 1;
+}
+
+// True when the user must mark today YES to keep an existing streak alive.
+// - Daily / target-day habits: there is a streak ending at the most recent
+//   prior target day (with SKIP transparent), and today is unmarked.
+// - Non-daily habits: today's window is satisfied, but tomorrow's window
+//   would drop below the threshold without further action (i.e.
+//   daysUntilStreakLoss === 1).
+export function streakAtRiskToday(
+  entries: Entry[],
+  frequency: Frequency,
+  targetDays?: boolean[]
+): boolean {
+  const today = todayISO();
+  const todayValue = entries.find((e) => e.date === today)?.value;
+  if (todayValue === "YES" || todayValue === "SKIP") return false;
+
+  if (frequency.denominator > 1 && !targetDays) {
+    return daysUntilStreakLoss(entries, frequency, targetDays) === 1;
+  }
+
+  if (targetDays && !targetDays[getDayOfWeek(today)]) return false;
+
+  const allDays = getPastDays(365);
+  for (let i = allDays.length - 2; i >= 0; i--) {
+    const day = allDays[i];
+    if (targetDays && !targetDays[getDayOfWeek(day)]) continue;
+    const v = entries.find((e) => e.date === day)?.value;
+    if (v === "YES") return true;
+    if (v === "SKIP") continue;
+    return false;
+  }
+  return false;
 }

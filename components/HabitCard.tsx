@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Flame, Hourglass } from "lucide-react";
+import { Flame, Hourglass, AlertTriangle } from "lucide-react";
 import { CheckmarkButton } from "./CheckmarkButton";
 import { ScoreRing } from "./ScoreRing";
 import { getColor, formatFrequency } from "@/lib/models";
@@ -59,6 +59,14 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
             >
               <Hourglass size={10} strokeWidth={2.5} />
               {habit.daysUntilStreakLoss}d left
+            </span>
+          )}
+          {habit.streakAtRiskToday && (
+            <span
+              className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-500"
+              title="will lose streak if not done today"
+            >
+              <AlertTriangle size={10} strokeWidth={2.5} />
             </span>
           )}
         </div>
