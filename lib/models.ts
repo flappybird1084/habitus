@@ -230,6 +230,46 @@ export function computeStreaks(
     return { current, longest };
   }
 
-  // For non-daily habits, simplified streak count
-  return { current: sortedEntries.length > 0 ? 1 : 0, longest: sortedEntries.length };
+  // Non-daily (e.g. 3×/7): a day D is "satisfied" if the window of
+  // `denominator` most recent non-SKIP days ending at D contains at least
+  // `numerator` YES entries. SKIP days are transparent — they neither
+  // count toward the window nor toward the streak length.
+  const allDays = getPastDays(365);
+  const valueByDate = new Map<string, EntryValue>(
+    entries.map((e) => [e.date, e.value])
+  );
+
+  const isSatisfied = (endIdx: number): boolean => {
+    let yes = 0;
+    let counted = 0;
+    for (let i = endIdx; i >= 0 && counted < frequency.denominator; i--) {
+      const v = valueByDate.get(allDays[i]);
+      if (v === "SKIP") continue;
+      counted++;
+      if (v === "YES") yes++;
+    }
+    return yes >= frequency.numerator;
+  };
+
+  let longest = 0;
+  let streak = 0;
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    if (valueByDate.get(allDays[i]) === "SKIP") continue;
+    if (isSatisfied(i)) {
+      streak++;
+      if (streak > longest) longest = streak;
+    } else {
+      streak = 0;
+    }
+  }
+
+  let current = 0;
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    const v = valueByDate.get(allDays[i]);
+    if (v === "SKIP") continue;
+    if (isSatisfied(i)) current++;
+    else break;
+  }
+
+  return { current, longest };
 }
