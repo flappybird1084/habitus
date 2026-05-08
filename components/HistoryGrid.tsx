@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { getColor, getDayOfWeek } from "@/lib/models";
+import { getColor, getDayOfWeek, dateToISO } from "@/lib/models";
 import type { Entry } from "@/lib/models";
 import { cn } from "@/lib/utils";
 
@@ -37,11 +37,11 @@ export function HistoryGrid({
     gridStart.setDate(gridStart.getDate() - dayOfWeek - (weeks - 1) * 7);
 
     const entryMap = new Map(entries.map((e) => [e.date, e.value]));
-    const todayISO = today.toISOString().split("T")[0];
+    const todayISO = dateToISO(today);
 
     let current = new Date(gridStart);
     while (current <= gridEnd) {
-      const dateISO = current.toISOString().split("T")[0];
+      const dateISO = dateToISO(current);
       const isFuture = dateISO > todayISO;
       const val = entryMap.get(dateISO) ?? null;
       const isOffDay = !!(targetDays && !targetDays[getDayOfWeek(dateISO)] && val !== "YES");

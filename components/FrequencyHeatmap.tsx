@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { getColor } from "@/lib/models";
+import { getColor, dateToISO } from "@/lib/models";
 import type { Entry } from "@/lib/models";
 
 interface FrequencyHeatmapProps {
@@ -29,7 +29,7 @@ export function FrequencyHeatmap({
     for (let i = 0; i < 90; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const iso = d.toISOString().split("T")[0];
+      const iso = dateToISO(d);
       const dow = d.getDay();
       totals[dow]++;
       const entry = entries.find((e) => e.date === iso);

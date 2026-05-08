@@ -10,7 +10,7 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { getColor } from "@/lib/models";
+import { getColor, dateToISO } from "@/lib/models";
 import type { Entry } from "@/lib/models";
 
 interface HabitBarChartProps {
@@ -36,7 +36,7 @@ export function HabitBarChart({
       return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(today);
         d.setDate(d.getDate() - (6 - i));
-        const iso = d.toISOString().split("T")[0];
+        const iso = dateToISO(d);
         const label = d.toLocaleDateString("en-US", { weekday: "short" });
         const entry = entries.find((e) => e.date === iso);
         return { label, value: entry?.value === "YES" ? 1 : 0, date: iso };
@@ -52,7 +52,7 @@ export function HabitBarChart({
         for (let d = 0; d < 7; d++) {
           const day = new Date(weekStart);
           day.setDate(day.getDate() + d);
-          const iso = day.toISOString().split("T")[0];
+          const iso = dateToISO(day);
           if (entries.find((e) => e.date === iso && e.value === "YES")) count++;
         }
         const label = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -66,10 +66,10 @@ export function HabitBarChart({
       const year = d.getFullYear();
       const month = d.getMonth();
       const label = d.toLocaleDateString("en-US", { month: "short" });
-      const count = entries.filter((e) => {
-        const ed = new Date(e.date);
-        return ed.getFullYear() === year && ed.getMonth() === month && e.value === "YES";
-      }).length;
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+      const count = entries.filter(
+        (e) => e.date.startsWith(monthPrefix) && e.value === "YES"
+      ).length;
       return { label, value: count };
     });
   }, [entries, view]);
