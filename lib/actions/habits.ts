@@ -13,6 +13,7 @@ import {
   todayISO,
   computeScore,
   computeStreaks,
+  daysUntilStreakLoss,
   getPast30Days,
 } from "@/lib/models";
 
@@ -43,6 +44,7 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
   const todayEntry = entries.find((e) => e.date === today) ?? null;
   const score = computeScore(entries, habit.frequency, habit.targetDays);
   const { current, longest } = computeStreaks(entries, habit.frequency, habit.targetDays);
+  const streakDaysLeft = daysUntilStreakLoss(entries, habit.frequency, habit.targetDays);
   const past30 = getPast30Days();
   const completed30 = past30.filter((d) =>
     entries.some((e) => e.date === d && e.value === "YES")
@@ -60,6 +62,7 @@ async function habitToStats(habit: Habit): Promise<HabitWithStats> {
     completionRate: completed30 / 30,
     totalCount: yesEntries.length,
     lastFilledDate,
+    daysUntilStreakLoss: streakDaysLeft,
   };
 }
 

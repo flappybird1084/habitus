@@ -54,6 +54,7 @@ export interface HabitWithStats extends Habit {
   completionRate: number; // 0-1 for last 30 days
   totalCount: number;
   lastFilledDate: string | null; // ISO date of most recent YES entry
+  daysUntilStreakLoss: number | null;
 }
 
 // 20-color palette matching uhabits
@@ -272,4 +273,51 @@ export function computeStreaks(
   }
 
   return { current, longest };
+}
+
+// For non-daily habits (e.g. 3×/7): how many days from today until the
+// rolling window would no longer be satisfied if the user logs nothing else.
+// Returns null when not applicable (daily habits or habits with targetDays
+// — those break the moment a target day is missed). Returns 0 when the
+// streak is already not satisfied today.
+export function daysUntilStreakLoss(
+  entries: Entry[],
+  frequency: Frequency,
+  targetDays?: boolean[]
+): number | null {
+  if (frequency.denominator === 1 || targetDays) return null;
+
+  const valueByDate = new Map<string, EntryValue>(
+    entries.map((e) => [e.date, e.value])
+  );
+  const todayDate = new Date();
+
+  const valueAtOffset = (offset: number): EntryValue | undefined => {
+    if (offset > 0) return undefined; // future days have no entries
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() + offset);
+    return valueByDate.get(dateToISO(d));
+  };
+
+  const isSatisfiedAt = (endOffset: number): boolean => {
+    let yes = 0;
+    let counted = 0;
+    let i = endOffset;
+    const floor = endOffset - 365;
+    while (counted < frequency.denominator && i > floor) {
+      const v = valueAtOffset(i);
+      if (v === "SKIP") { i--; continue; }
+      counted++;
+      if (v === "YES") yes++;
+      i--;
+    }
+    return yes >= frequency.numerator;
+  };
+
+  if (!isSatisfiedAt(0)) return 0;
+
+  for (let offset = 1; offset <= frequency.denominator + 1; offset++) {
+    if (!isSatisfiedAt(offset)) return offset;
+  }
+  return frequency.denominator + 1;
 }

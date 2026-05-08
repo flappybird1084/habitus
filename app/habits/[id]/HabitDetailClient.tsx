@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
-  Edit3, Trash2, Archive, Flame, Award, TrendingUp, Calendar, BarChart2, Activity,
+  Edit3, Trash2, Archive, Flame, Award, TrendingUp, Calendar, BarChart2, Activity, Hourglass,
 } from "lucide-react";
 import { toggleEntry } from "@/lib/actions/entries";
 import { deleteHabit, archiveHabit } from "@/lib/actions/habits";
@@ -154,9 +154,20 @@ export function HabitDetailClient({ habit, entries, firstWeekday }: Props) {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className={cn(
+          "grid gap-3",
+          habit.daysUntilStreakLoss !== null ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+        )}>
           <StatCard label="Current Streak" value={habit.currentStreak} subtitle="days" color={hexColor} icon={<Flame size={14} />} />
           <StatCard label="Best Streak" value={habit.longestStreak} subtitle="days" icon={<Award size={14} />} />
+          {habit.daysUntilStreakLoss !== null && (
+            <StatCard
+              label="Streak Buffer"
+              value={habit.daysUntilStreakLoss}
+              subtitle={habit.daysUntilStreakLoss === 1 ? "day left" : "days left"}
+              icon={<Hourglass size={14} />}
+            />
+          )}
           <StatCard label="Total" value={habit.totalCount} subtitle="times" icon={<Activity size={14} />} />
         </div>
 

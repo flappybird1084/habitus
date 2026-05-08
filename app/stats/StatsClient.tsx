@@ -14,7 +14,7 @@ import type { HabitWithStats } from "@/lib/models";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { ScoreRing } from "@/components/ScoreRing";
-import { Flame, TrendingUp, Target, CheckCircle2 } from "lucide-react";
+import { Flame, TrendingUp, Target, CheckCircle2, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { formatPercent } from "@/lib/utils";
 
@@ -157,6 +157,15 @@ export function StatsClient({ habits }: Props) {
                       {habit.currentStreak}
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">days</span>
+                    {habit.daysUntilStreakLoss !== null && habit.currentStreak > 0 && (
+                      <span
+                        className="ml-1.5 flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--card-hover)] text-[var(--text-muted)]"
+                        title={`Streak ends in ${habit.daysUntilStreakLoss} day${habit.daysUntilStreakLoss === 1 ? "" : "s"} if no further entries`}
+                      >
+                        <Hourglass size={10} strokeWidth={2.5} />
+                        {habit.daysUntilStreakLoss}d left
+                      </span>
+                    )}
                   </div>
                 </Link>
               );

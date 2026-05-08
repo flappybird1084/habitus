@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Flame } from "lucide-react";
+import { Flame, Hourglass } from "lucide-react";
 import { CheckmarkButton } from "./CheckmarkButton";
 import { ScoreRing } from "./ScoreRing";
 import { getColor, formatFrequency } from "@/lib/models";
@@ -50,6 +50,15 @@ export function HabitCard({ habit, onToggle }: HabitCardProps) {
             >
               <Flame size={10} strokeWidth={2.5} />
               {habit.currentStreak}
+            </span>
+          )}
+          {habit.daysUntilStreakLoss !== null && habit.currentStreak > 0 && (
+            <span
+              className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--card-hover)] text-[var(--text-muted)]"
+              title={`Streak ends in ${habit.daysUntilStreakLoss} day${habit.daysUntilStreakLoss === 1 ? "" : "s"} if no further entries`}
+            >
+              <Hourglass size={10} strokeWidth={2.5} />
+              {habit.daysUntilStreakLoss}d left
             </span>
           )}
         </div>
